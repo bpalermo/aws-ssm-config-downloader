@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+load("@io_bazel_rules_docker//contrib:push-all.bzl", "docker_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle", "container_push")
+
+docker_push(
+    name = "bundle_push",
+    bundle = ":image_bundle",
+)
+
+container_bundle(
+    name = "image_bundle",
+    images = {
+        "{STABLE_REPOSITORY}/aws-ssm-config-downloader:latest": ":image",
+        "{STABLE_REPOSITORY}/aws-ssm-config-downloader:{BUILD_SCM_REVISION}": ":image",
+        "{STABLE_REPOSITORY}/aws-ssm-config-downloader:{BUILD_SCM_TAG}": ":image",
+    },
+)
+
+go_image(
+    name = "image",
+    srcs = ["main.go"],
+    importpath = "github.com/bpalermo/aws-ssm-config-downloader/cmd/config-downloader",
+    deps = [
+        "//pkg/aws",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
+)
+
+go_library(
+    name = "config-downloader_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/bpalermo/aws-ssm-config-downloader/cmd/config-downloader",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//pkg/aws",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
+)
+
+go_binary(
+    name = "config-downloader",
+    embed = [":config-downloader_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "config-downloader_test",
+    srcs = ["main_test.go"],
+    embed = [":config-downloader_lib"],
+)
