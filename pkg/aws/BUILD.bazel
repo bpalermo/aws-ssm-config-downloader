@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "aws",
+    srcs = [
+        "aws.go",
+        "ssm.go",
+    ],
+    importpath = "github.com/bpalermo/aws-ssm-config-downloader/pkg/aws",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_aws_aws_sdk_go_v2//aws",
+        "@com_github_aws_aws_sdk_go_v2_config//:config",
+        "@com_github_aws_aws_sdk_go_v2_service_ssm//:ssm",
+        "@com_github_sirupsen_logrus//:logrus",
+    ],
+)
+
+go_test(
+    name = "aws_test",
+    srcs = ["aws_test.go"],
+    embed = [":aws"],
+    deps = ["@com_github_stretchr_testify//assert"],
+)
