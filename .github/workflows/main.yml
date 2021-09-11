@@ -1,0 +1,47 @@
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Mount bazel cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/bazel
+          key: bazel
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17' # The Go version to download (if necessary) and use.
+
+      - name: Install Bazelisk
+        run: |
+          go install github.com/bazelbuild/bazelisk@latest
+          export PATH=$PATH:$(go env GOPATH)/bin
+
+      - name: Build
+        run: make build
+
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Image
+        if: github.event_name != 'pull_request'
+        run: bazelisk run //cmd/config-downloader:bundle_push
